@@ -1,0 +1,1 @@
+A simple Note taker, focused on the simplicity and facility of use, hope it helps :)
