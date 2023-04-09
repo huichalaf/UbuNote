@@ -2,8 +2,8 @@ import tkinter as tk
 import keyboard
 from tkinter import filedialog
 from PIL import Image, ImageTk
-import io, sys, os
-from canvas_window import MyCanvas
+import io
+from functions import get_json_data, modify_json_data
 
 window = tk.Tk()
 # first we get the dimensions of the screen
@@ -16,6 +16,12 @@ del window
 class MyCanvas(tk.Canvas):
     def __init__(self, parent, *args, **kwargs):
         tk.Canvas.__init__(self, parent, *args, **kwargs)
+        self.crucial_data = get_json_data()
+        self.pencil_color_original = self.crucial_data["pencil_color"]
+        self.rubber_color = self.crucial_data["rubber_color"]
+        self.background_color = self.crucial_data["background_color"]
+        self.width_pencil = self.crucial_data["width_pencil"]
+        self.width_rubber = self.crucial_data["width_rubber"]
         self.color = 'red'
         self.width = 2
         self.bind("<Motion>", self.tell_me_where_you_are)
@@ -23,27 +29,31 @@ class MyCanvas(tk.Canvas):
         self.bind("<B1-Motion>", self.draw_line)
         self.bind("<ButtonRelease-1>", self.stop_drawing)
         keyboard.add_hotkey('ctrl+shift+c', self.clear_canvas)
+        keyboard.add_hotkey('ctrl+s', self.guardar_archivo)
+        keyboard.add_hotkey('ctrl+o', self.abrir_archivo)
         self.bind("<Control-Key>", self.toggle_color)
+        self.screen_width = screen_width
+        self.screen_height = screen_height
 
     def tell_me_where_you_are(self, event):
         self.x, self.y = event.x, event.y
 
     def draw_line(self, event):
         if keyboard.is_pressed('ctrl'):
-            self.color = 'white'
-            self.width = 10
+            self.pencil_color = self.rubber_color
+            self.width = self.width_rubber
         else:
-            self.color = 'red'
-            self.width = 2
-        self.create_line(self.x, self.y, event.x, event.y, width=self.width, fill=self.color)
+            self.pencil_color = self.pencil_color_original
+            self.width = self.width_pencil
+        self.create_line(self.x, self.y, event.x, event.y, width=self.width, fill=self.pencil_color)
         self.x, self.y = event.x, event.y
 
     def toggle_color(self, event):
-        if self.color == 'red':
-            self.color = 'white'
+        if self.pencil_color == self.pencil_color_original:
+            self.pencil_color = self.rubber_color
         else:
-            self.color = 'red'
-
+            self.pencil_color = self.pencil_color_original
+    
     def start_drawing(self, event):
         self.x, self.y = event.x, event.y
         self.bind("<B1-Motion>", self.draw_line)
@@ -58,7 +68,7 @@ class MyCanvas(tk.Canvas):
         archivo = filedialog.askopenfile(defaultextension=".jpg", filetypes=[("Archivos de imagen", "*.jpg *.jpeg *.png *.bmp")])
         if archivo is not None:
             imagen = Image.open(archivo.name)
-            imagen = imagen.resize((screen_width, screen_height))
+            imagen = imagen.resize((self.screen_width, self.screen_height))
             imagen_tk = ImageTk.PhotoImage(imagen)
             self.delete("all")
             self.create_image(0, 0, anchor="nw", image=imagen_tk)
